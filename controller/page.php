@@ -47,5 +47,5 @@ post("/eventAdd", function() {
     extract($_POST);
     $file = $_FILES['photo'];
     db::exec("insert into tours(title, start_date, end_date, time, place, category, organization, photo) values('$title', '$start_date', '$end_date', '$time', '$place', '$category', '$organization', '$photo')");
-    move("/event", "행사 등록 성공")
+    move("/event", "행사 등록 성공");
 });
