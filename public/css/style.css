@@ -285,5 +285,13 @@
 .popup-info p {color: #333;}
 
 /* 코스 */
-.control-modal {position: absolute;display: flex;padding: 10px;gap: 10px;background-color: white;border: 1px solid #ccc;}
-.control-modal button {padding: 5px 10px;font-size: 14px;}
+.control-modal {position: absolute;display: none;padding: 10px;gap: 10px;background-color: white;border: 1px solid #ccc;}
+.control-modal button {padding: 5px 10px;font-size: 11px;}
+.course-section .wrap {padding: 50px 0;}
+.route-result {align-items: center; padding: 20px 0;display: flex;gap: 20px;}
+.canvas-map {width: 1300px;height: 700px;position: relative;}
+.course-list {display: flex;flex-direction: column;gap: 10px;margin-top: 20px;}
+.course-list .item {padding: 10px;border: 1px solid #ccc;}
+.course-list .item .course-route {font-size: 16px;}
+.course-list .item p {font-size: 14px;}
+.sort-btns button.active {background-color: black !important;color: white !important;}
