@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>투어 일정 설정</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f5;color:#1a1a1a;min-height:100vh;padding:1rem}
+.container{max-width:1100px;margin:0 auto}
+
+/* Top bar */
+.topbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.btn-course-change{padding:5px 12px;font-size:12px;border:1px solid #555;border-radius:4px;background:#fff;cursor:pointer;font-weight:500}
+.btn-course-change:hover{background:#f0f0f0}
+.course-tabs{display:flex;gap:4px;flex-wrap:wrap}
+.course-tab{padding:4px 12px;font-size:12px;border:1px solid #ccc;border-radius:4px;background:#fff;cursor:grab;user-select:none;white-space:nowrap;transition:all 0.1s}
+.course-tab:hover{background:#e8f0fe;border-color:#4285f4}
+.course-tab.placed{background:#e8f0fe;border-color:#4285f4;color:#1a73e8}
+.course-tab.dragging-source{opacity:0.4}
+
+/* Nav row */
+.nav-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:0 2px}
+.btn-nav{background:none;border:none;font-size:13px;cursor:pointer;color:#333;padding:4px 10px;border-radius:4px}
+.btn-nav:hover{background:#e8e8e8}
+.nav-title{font-size:14px;font-weight:500;color:#333}
+
+/* Calendar grid */
+.calendars{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #ccc;border-radius:6px;overflow:hidden;background:#fff}
+.cal-month{flex:1}
+.cal-header{text-align:center;padding:8px;font-size:13px;font-weight:600;border-bottom:1px solid #ddd;background:#f9f9f9}
+.weekdays-row{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid #ddd}
+.weekday-cell{text-align:center;padding:5px 2px;font-size:11px;color:#666;font-weight:500;border-right:1px solid #eee}
+.weekday-cell:last-child{border-right:none}
+.days-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.day-cell{min-height:80px;border-right:1px solid #eee;border-bottom:1px solid #eee;padding:2px;vertical-align:top;position:relative;transition:background 0.1s}
+.day-cell:nth-child(7n){border-right:none}
+.day-cell.drag-over{background:#e8f0fe !important}
+.day-cell.disabled{background:#f8f8f8}
+.day-num{font-size:11px;color:#333;padding:1px 3px;line-height:1.4}
+.day-num.today-num{background:#1a73e8;color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px}
+.day-num.past-num{color:#bbb}
+.day-cell.has-range{background:#e8f4fd}
+.day-cell.range-boundary{background:#c5e3f7}
+
+/* Schedule items inside cell */
+.sched-items{display:flex;flex-direction:column;gap:1px;margin-top:1px}
+.sched-item{font-size:10px;padding:1px 4px;border-radius:3px;cursor:grab;user-select:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.5;border:1px solid transparent}
+.sched-item:hover{filter:brightness(0.93)}
+.sched-item.dragging-item{opacity:0.35;cursor:grabbing}
+.sched-item.type-start{background:#dbeafe;color:#1e40af;border-color:#bfdbfe}
+.sched-item.type-via{background:#dcfce7;color:#166534;border-color:#bbf7d0}
+.sched-item.type-via2{background:#fef9c3;color:#854d0e;border-color:#fde68a}
+.sched-item.type-end{background:#fee2e2;color:#991b1b;border-color:#fecaca}
+
+/* divider between months */
+.cal-divider{width:1px;background:#ccc}
+
+/* Register button */
+.bottom-bar{margin-top:10px;display:flex;justify-content:flex-end}
+.btn-register{padding:8px 24px;font-size:13px;font-weight:500;background:#1a73e8;color:#fff;border:none;border-radius:6px;cursor:pointer}
+.btn-register:hover{background:#1557b0}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:8px 18px;border-radius:6px;font-size:13px;opacity:0;transition:opacity 0.2s;pointer-events:none;z-index:9999;white-space:nowrap;max-width:320px;text-align:center}
+.toast.show{opacity:1}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:10px;padding:1.5rem;width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.15)}
+.modal h2{font-size:15px;font-weight:600;margin-bottom:1rem}
+.modal-summary{background:#f8f8f8;border-radius:6px;padding:10px;font-size:12px;color:#555;line-height:1.9;margin-bottom:1rem}
+.form-row{margin-bottom:10px}
+.form-row label{display:block;font-size:12px;color:#555;margin-bottom:3px;font-weight:500}
+.form-row input{width:100%;padding:7px 10px;font-size:13px;border:1px solid #ddd;border-radius:6px;outline:none}
+.form-row input:focus{border-color:#1a73e8}
+.form-err{font-size:12px;color:#d32f2f;margin-top:6px}
+.modal-actions{display:flex;gap:8px;margin-top:1rem}
+.btn-cancel{flex:1;padding:8px;font-size:13px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer}
+.btn-submit{flex:2;padding:8px;font-size:13px;font-weight:600;background:#1a73e8;color:#fff;border:none;border-radius:6px;cursor:pointer}
+.btn-submit:hover{background:#1557b0}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Top bar: 코스변경 + 코스 탭들 -->
+  <div class="topbar">
+    <button class="btn-course-change" onclick="goToCourse()">코스변경</button>
+    <div class="course-tabs" id="courseTabs"></div>
+  </div>
+
+  <!-- Nav: 이전 / 월표시 / 다음 -->
+  <div class="nav-row">
+    <button class="btn-nav" onclick="shiftMonth(-1)">◀ 이전</button>
+    <span class="nav-title" id="navTitle"></span>
+    <button class="btn-nav" onclick="shiftMonth(1)">다음 ▶</button>
+  </div>
+
+  <!-- Two calendars -->
+  <div class="calendars" id="calendars"></div>
+
+  <div class="bottom-bar">
+    <button class="btn-register" onclick="openModal()">투어일정등록</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2>투어 등록</h2>
+    <div class="modal-summary" id="modalSummary"></div>
+    <div class="form-row">
+      <label>투어명 <span style="color:#d32f2f">*</span></label>
+      <input type="text" id="fName" placeholder="투어명 입력">
+    </div>
+    <div class="form-row">
+      <label>투어 인원 상한 <span style="color:#d32f2f">*</span></label>
+      <input type="number" id="fPax" placeholder="최대 인원" min="1">
+    </div>
+    <div class="form-row">
+      <label>투어 금액 (원) <span style="color:#d32f2f">*</span></label>
+      <input type="number" id="fPrice" placeholder="금액" min="0">
+    </div>
+    <div class="form-err" id="fErr"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">취소</button>
+      <button class="btn-submit" onclick="submitTour()">등록</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ───────────────────────────────────────────────
+// 데이터
+// ───────────────────────────────────────────────
+const COURSES = [
+  { id:'start', label:'경복궁',    type:'type-start', order:0 },
+  { id:'via1',  label:'청계천',    type:'type-via',   order:1 },
+  { id:'via2',  label:'창덕궁',    type:'type-via',   order:2 },
+  { id:'via3',  label:'북촌한옥마을', type:'type-via', order:3 },
+  { id:'via4',  label:'청계국',    type:'type-via',   order:4 },
+  { id:'via5',  label:'낙산공원',  type:'type-via',   order:5 },
+  { id:'via6',  label:'남대문',    type:'type-via',   order:6 },
+  { id:'via7',  label:'광장시장',  type:'type-via',   order:7 },
+  { id:'via8',  label:'청동',      type:'type-via',   order:8 },
+  { id:'via9',  label:'술매',      type:'type-via',   order:9 },
+  { id:'via10', label:'유창공원',  type:'type-via',   order:10 },
+  { id:'via11', label:'경리단길',  type:'type-via',   order:11 },
+  { id:'via12', label:'책현광장',  type:'type-via',   order:12 },
+  { id:'via13', label:'서울타워',  type:'type-via',   order:13 },
+  { id:'via14', label:'국민국정',  type:'type-via',   order:14 },
+  { id:'via15', label:'투대문',    type:'type-via',   order:15 },
+  { id:'via16', label:'창원도정',  type:'type-via',   order:16 },
+  { id:'via17', label:'타학목',    type:'type-via',   order:17 },
+  { id:'end',   label:'하로니이유공원', type:'type-end', order:18 },
+];
+
+const MAX_PER_DAY = 4;
+const KR_MONTHS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+const WEEK_LABELS = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+
+// schedule: { "YYYY-MM-DD": [ courseId, ... ] }
+let schedule = {};
+let baseMonth;
+
+// drag state
+let drag = {
+  courseId: null,      // 드래그 중인 코스 ID
+  fromDate: null,      // 달력 셀에서 시작했으면 날짜
+  fromTab: false,      // 상단 탭에서 시작했으면 true
+};
+
+let tourIdx = 100;
+
+// ───────────────────────────────────────────────
+// 유틸
+// ───────────────────────────────────────────────
+const toStr = (y,m,d) =>
+  `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+
+const parse = s => {
+  const [y,m,d] = s.split('-').map(Number);
+  return {y, m:m-1, d};
+};
+
+const todayStr = () => {
+  const n = new Date();
+  return toStr(n.getFullYear(), n.getMonth(), n.getDate());
+};
+
+const addDays = (dateStr, n) => {
+  const {y,m,d} = parse(dateStr);
+  const dt = new Date(y,m,d+n);
+  return toStr(dt.getFullYear(), dt.getMonth(), dt.getDate());
+};
+
+const dayDiff = (a,b) => Math.round((new Date(b)-new Date(a))/86400000);
+
+const fmtKR = s => {
+  const {y,m,d} = parse(s);
+  return `${y}.${String(m+1).padStart(2,'0')}.${String(d).padStart(2,'0')}`;
+};
+
+const getCourseOrder = id => COURSES.find(c=>c.id===id)?.order ?? 999;
+
+const getPlacedDate = (courseId, sch=schedule) => {
+  for (const [date,ids] of Object.entries(sch))
+    if (ids.includes(courseId)) return date;
+  return null;
+};
+
+const clone = () => JSON.parse(JSON.stringify(schedule));
+
+const addToDate = (sch, date, courseId) => {
+  if (!sch[date]) sch[date] = [];
+  if (!sch[date].includes(courseId)) sch[date].push(courseId);
+};
+
+const removeFromDate = (sch, date, courseId) => {
+  if (!sch[date]) return;
+  sch[date] = sch[date].filter(id=>id!==courseId);
+  if (sch[date].length===0) delete sch[date];
+};
+
+// ───────────────────────────────────────────────
+// 초기화
+// ───────────────────────────────────────────────
+function init() {
+  const now = new Date();
+  baseMonth = {y:now.getFullYear(), m:now.getMonth()};
+  renderTabs();
+  renderAll();
+}
+
+// ───────────────────────────────────────────────
+// 탭 렌더
+// ───────────────────────────────────────────────
+function renderTabs() {
+  const el = document.getElementById('courseTabs');
+  el.innerHTML = '';
+  COURSES.forEach(c => {
+    const placed = getPlacedDate(c.id);
+    const tab = document.createElement('div');
+    tab.className = 'course-tab' + (placed?' placed':'');
+    tab.textContent = c.label;
+    tab.draggable = true;
+    tab.dataset.id = c.id;
+
+    tab.addEventListener('dragstart', e => {
+      drag.courseId = c.id;
+      drag.fromDate = null;
+      drag.fromTab  = true;
+      tab.classList.add('dragging-source');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    tab.addEventListener('dragend', () => tab.classList.remove('dragging-source'));
+    el.appendChild(tab);
+  });
+}
+
+// ───────────────────────────────────────────────
+// 달력 전체 렌더
+// ───────────────────────────────────────────────
+function renderAll() {
+  renderNavTitle();
+  renderCalendars();
+  renderTabs();
+}
+
+function renderNavTitle() {
+  const {y,m} = baseMonth;
+  const nm = m===11?{y:y+1,m:0}:{y,m:m+1};
+  document.getElementById('navTitle').textContent =
+    `${y}년 ${KR_MONTHS[m]}   ${nm.y}년 ${KR_MONTHS[nm.m]}`;
+}
+
+function shiftMonth(dir) {
+  let {y,m} = baseMonth;
+  m+=dir;
+  if(m<0){m=11;y--;}
+  if(m>11){m=0;y++;}
+  baseMonth={y,m};
+  renderAll();
+}
+
+// ───────────────────────────────────────────────
+// 달력 렌더
+// ───────────────────────────────────────────────
+function renderCalendars() {
+  const {y,m} = baseMonth;
+  const nm = m===11?{y:y+1,m:0}:{y,m:m+1};
+  const cont = document.getElementById('calendars');
+  cont.innerHTML='';
+  cont.appendChild(buildMonth(y,m));
+  const div=document.createElement('div');
+  div.className='cal-divider';
+  cont.appendChild(div);
+  cont.appendChild(buildMonth(nm.y,nm.m));
+}
+
+function buildMonth(y,m) {
+  const today = todayStr();
+  const daysInMonth = new Date(y,m+1,0).getDate();
+  const firstDow    = new Date(y,m,1).getDay();
+
+  // range 계산
+  const allDates = Object.keys(schedule).sort();
+  const rangeFirst = allDates[0]||null;
+  const rangeLast  = allDates[allDates.length-1]||null;
+
+  const wrap = document.createElement('div');
+  wrap.className='cal-month';
+
+  // month header
+  const hdr = document.createElement('div');
+  hdr.className='cal-header';
+  hdr.textContent=`${y}년 ${KR_MONTHS[m]}`;
+  wrap.appendChild(hdr);
+
+  // weekday labels
+  const wkRow = document.createElement('div');
+  wkRow.className='weekdays-row';
+  WEEK_LABELS.forEach(d=>{
+    const s=document.createElement('div');
+    s.className='weekday-cell';
+    s.textContent=d;
+    wkRow.appendChild(s);
+  });
+  wrap.appendChild(wkRow);
+
+  // days
+  const grid=document.createElement('div');
+  grid.className='days-grid';
+
+  // 빈 칸
+  for(let i=0;i<firstDow;i++){
+    const e=document.createElement('div');
+    e.className='day-cell disabled';
+    grid.appendChild(e);
+  }
+
+  for(let d=1;d<=daysInMonth;d++){
+    const dateStr=toStr(y,m,d);
+    const isPast=dateStr<=today;
+    const isToday=dateStr===today;
+    const items=schedule[dateStr]||[];
+
+    const cell=document.createElement('div');
+    cell.className='day-cell'+(isPast?' disabled':'');
+
+    // range highlight
+    if(!isPast&&rangeFirst&&rangeLast){
+      if(dateStr>=rangeFirst&&dateStr<=rangeLast){
+        if(allDates.includes(dateStr)) cell.classList.add('range-boundary');
+        else cell.classList.add('has-range');
+      }
+    }
+
+    // 날짜 숫자
+    const numEl=document.createElement('div');
+    if(isToday){
+      numEl.className='day-num today-num';
+    } else if(isPast){
+      numEl.className='day-num past-num';
+    } else {
+      numEl.className='day-num';
+    }
+    numEl.textContent=d;
+    cell.appendChild(numEl);
+
+    // 일정 아이템들
+    if(items.length>0){
+      const listEl=document.createElement('div');
+      listEl.className='sched-items';
+      // 순서대로 정렬
+      const sorted=[...items].sort((a,b)=>getCourseOrder(a)-getCourseOrder(b));
+      sorted.forEach(courseId=>{
+        const c=COURSES.find(x=>x.id===courseId);
+        if(!c) return;
+        const item=document.createElement('div');
+        item.className=`sched-item ${c.type}`;
+        item.textContent=c.label;
+        item.draggable=true;
+        item.dataset.courseId=courseId;
+        item.dataset.date=dateStr;
+
+        item.addEventListener('dragstart', e=>{
+          drag.courseId=courseId;
+          drag.fromDate=dateStr;
+          drag.fromTab=false;
+          item.classList.add('dragging-item');
+          e.dataTransfer.effectAllowed='move';
+          e.stopPropagation();
+        });
+        item.addEventListener('dragend', ()=>item.classList.remove('dragging-item'));
+        listEl.appendChild(item);
+      });
+      cell.appendChild(listEl);
+    }
+
+    // 드롭 이벤트 (과거 불가)
+    if(!isPast){
+      cell.addEventListener('dragover', e=>{
+        e.preventDefault();
+        cell.classList.add('drag-over');
+      });
+      cell.addEventListener('dragleave', ()=>cell.classList.remove('drag-over'));
+      cell.addEventListener('drop', e=>{
+        e.preventDefault();
+        cell.classList.remove('drag-over');
+        handleDrop(dateStr);
+      });
+    }
+
+    grid.appendChild(cell);
+  }
+  wrap.appendChild(grid);
+  return wrap;
+}
+
+// ───────────────────────────────────────────────
+// 드롭 처리
+// ───────────────────────────────────────────────
+function handleDrop(targetDate) {
+  if(!drag.courseId) return;
+  const courseId  = drag.courseId;
+  const fromDate  = drag.fromDate;
+  const courseIdx = COURSES.findIndex(c=>c.id===courseId);
+
+  drag.courseId=null;
+  drag.fromDate=null;
+  drag.fromTab=false;
+
+  const result = tryPlace(courseId, courseIdx, targetDate, fromDate);
+  if(result.ok){
+    renderAll();
+    if(result.finalDate!==targetDate){
+      showToast(`하루 최대 ${MAX_PER_DAY}개 초과 → ${fmtKR(result.finalDate)}로 이연`);
+    }
+  } else {
+    showToast(result.msg, true);
+  }
+}
+
+// ───────────────────────────────────────────────
+// 배치 로직
+// ───────────────────────────────────────────────
+function tryPlace(courseId, courseIdx, targetDate, fromDate) {
+  const today = todayStr();
+  if(targetDate<=today)
+    return {ok:false, msg:'오늘 이전 날짜는 선택할 수 없습니다.'};
+
+  // 같은 날이면 아무것도 안 함
+  if(fromDate===targetDate) return {ok:true, finalDate:targetDate};
+
+  const sch = clone();
+  if(fromDate) removeFromDate(sch, fromDate, courseId);
+
+  if(courseId==='start'){
+    return placeStart(sch, courseId, targetDate);
+  } else {
+    return placeOther(sch, courseId, courseIdx, targetDate);
+  }
+}
+
+function placeStart(sch, courseId, targetDate) {
+  const entries = Object.keys(sch).sort();
+  if(entries.length===0){
+    addToDate(sch, targetDate, courseId);
+    schedule=sch;
+    return {ok:true, finalDate:targetDate};
+  }
+  const oldFirst=entries[0];
+  const shift=dayDiff(oldFirst, targetDate);
+  const shifted={};
+  for(const [d,ids] of Object.entries(sch)){
+    const nd=addDays(d,shift);
+    if(nd<=todayStr()) return {ok:false, msg:'이동 시 과거 날짜가 포함됩니다.'};
+    shifted[nd]=ids;
+  }
+  addToDate(shifted, targetDate, courseId);
+  schedule=shifted;
+  return {ok:true, finalDate:targetDate};
+}
+
+function placeOther(sch, courseId, courseIdx, targetDate) {
+  // 이전 코스 순서 검사
+  if(courseIdx>0){
+    const prevCourse=COURSES[courseIdx-1];
+    const prevDate=getPlacedDate(prevCourse.id, sch);
+    if(prevDate&&targetDate<prevDate)
+      return {ok:false, msg:'투어 순서상 적합한 위치가 아닙니다.'};
+  }
+  // 다음 코스 순서 검사
+  if(courseIdx<COURSES.length-1){
+    const nextCourse=COURSES[courseIdx+1];
+    const nextDate=getPlacedDate(nextCourse.id, sch);
+    if(nextDate&&targetDate>nextDate)
+      return {ok:false, msg:'투어 순서상 적합한 위치가 아닙니다.'};
+  }
+  // 하루 최대 4개 초과 → 이연
+  let date=targetDate;
+  let safetyCount=0;
+  while((sch[date]||[]).length>=MAX_PER_DAY && safetyCount<60){
+    date=addDays(date,1);
+    safetyCount++;
+  }
+  addToDate(sch, date, courseId);
+  schedule=sch;
+  return {ok:true, finalDate:date};
+}
+
+// ───────────────────────────────────────────────
+// 등록 모달
+// ───────────────────────────────────────────────
+function allPlaced(){
+  return COURSES.every(c=>getPlacedDate(c.id)!==null);
+}
+
+function openModal(){
+  if(!allPlaced()){
+    showToast('이동 일정이 모두 배치되지 않았습니다.', true);
+    return;
+  }
+  let html='';
+  COURSES.forEach(c=>{
+    const d=getPlacedDate(c.id);
+    html+=`• ${c.label} — ${fmtKR(d)}<br>`;
+  });
+  document.getElementById('modalSummary').innerHTML=html;
+  document.getElementById('fName').value='';
+  document.getElementById('fPax').value='';
+  document.getElementById('fPrice').value='';
+  document.getElementById('fErr').textContent='';
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+
+function submitTour(){
+  const name=document.getElementById('fName').value.trim();
+  const pax=document.getElementById('fPax').value.trim();
+  const price=document.getElementById('fPrice').value.trim();
+  const errEl=document.getElementById('fErr');
+  if(!name)              {errEl.textContent='투어명을 입력하세요.';return;}
+  if(!pax||+pax<1)       {errEl.textContent='인원 상한을 입력하세요.';return;}
+  if(!price||+price<0)   {errEl.textContent='투어 금액을 입력하세요.';return;}
+  const idx=tourIdx++;
+  closeModal();
+  schedule={};
+  renderAll();
+  showToast(`투어 등록 완료! 투어 idx: #${idx}`);
+}
+
+function goToCourse(){
+  showToast('투어코스 생성 페이지로 이동합니다.');
+}
+
+// ───────────────────────────────────────────────
+// 토스트
+// ───────────────────────────────────────────────
+let toastTimer=null;
+function showToast(msg, isErr=false){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.style.background=isErr?'#c62828':'#333';
+  el.classList.add('show');
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+init();
+</script>
+</body>
+</html>
