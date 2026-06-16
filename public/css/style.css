@@ -290,7 +290,7 @@
 .page-course, .page-schedule .wrap {padding: 50px 0;gap: 20px;display: flex;flex-direction: column;}
 .route-result {align-items: center; ;display: flex;gap: 20px;}
 .canvas-map {width: 1300px;height: 700px;position: relative;}
-.course-list {display: flex;flex-direction: column;gap: 10px;margin-top: 20px;}
+.course-list {display: flex;flex-direction: column;gap: 10px;}
 .course-list .item {padding: 10px;border: 1px solid #ccc;}
 .course-list .item .course-route {font-size: 16px;}
 .course-list .item p {font-size: 14px;}
@@ -304,3 +304,21 @@
   overflow: hidden;
   transition: .5s ease;
 }
+
+/* 스케줄 */
+.page-schedule .course-list {display: flex;gap: 20px;flex-direction: row;cursor: pointer;}
+.page-schedule .course-list div {user-select: none;border: 1px solid var(--line);padding: 5px 10px;}
+.page-schedule .course-list div.disabled { background-color: #eee; pointer-events: none;}
+.page-schedule .course-list div.dragging { background-color: red;}
+.calendar-container {height: 400px;display: flex;flex-direction: column;width: 100%;}
+.calendar-header {display: flex;justify-content: space-between;align-items: center;padding: 20px 30px;border: 1px solid var(--line);}
+.calendar-content {height: 100%;display: flex;}
+.current-calendar, .next-calendar {width: 50%;height: 100%;display: grid;grid-template-columns: repeat(7, 1fr);}
+.calendar-content div .day, .calendar-content div .week {display: flex;justify-content: center;align-items: center;width: 100%;height: 100%;padding: 10px;flex-direction: column;}
+.calendar-content div .week {font-weight: bold;}
+.calendar-content div .day:nth-child(7n) {color: #3d3dff;}
+.calendar-content div .day:nth-child(7n + 1) {color: #ff3d3d;}
+.calendar-content div .day.disabled {background-color: #eee;cursor: not-allowed;}
+.calendar-header .title-content {display: flex;gap: 30px;}
+.calendar .day .course-route {border: 0;padding: 0;font-size: 12px;}
+
