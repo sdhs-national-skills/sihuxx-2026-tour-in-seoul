@@ -4,8 +4,6 @@ const courseRoute = courseData.routeText.split("->")
 const calendar = $(".calendar-content")
 const startLocation = courseRoute[0]
 const endLocation = courseRoute.at(-1)
-console.log(startLocation, endLocation);
-
 
 // 상태
 const state = {
@@ -135,6 +133,16 @@ function makeTimeStamp(date) {
   // date.getMonth()는 0 ~ 11 반환
 }
 
+function inputSetting() {
+  const dates = state.schedule.map(item => new Date(item.date))
+  const start = new Date(Math.min(...dates))
+  const end = new Date(Math.max(...dates))
+
+  $("[name='start_date']").value = makeTimeStamp(start)
+  $("[name='end_date']").value = makeTimeStamp(end)
+  $("[name='tour_course']").value = courseData.routeText
+}
+
 let current = new Date()
 const now = new Date()
 const dates = '일월화수목금토'.split("")
@@ -165,6 +173,7 @@ function renderAll() {
 
   render(current, $(".current-calendar"), $(".current-title"))
   render(nextMonth, $(".next-calendar"), $(".next-title"))
+  inputSetting()
 }
 
 $(".prev-btn").onclick = () => {
