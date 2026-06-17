@@ -321,7 +321,6 @@ $(".schedule-btn").onclick = () => {
     alert("선택된 투어 코스가 없습니다")
     return
   }
-  const courseNames
   // 선택한 코스 localStorage에 저장 (/schedule 페이지에서 꺼내서 사용)
   localStorage.setItem("course", JSON.stringify(selectedCourse))
   // 현재 페이지 왼쪽으로 0.5초 동안 슬라이드
