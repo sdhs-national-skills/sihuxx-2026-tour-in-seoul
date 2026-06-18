@@ -60,5 +60,11 @@ post("/eventAdd", function () {
 post("/tourAdd", function() {
     extract($_POST);
     db::exec("insert into tours(name, max_people, price, course, start_date, end_date) values ('$name', '$max_people', '$price', '$tour_course', '$start_date','$end_date')");
-    move("/", "투어가 성공적으로 추가되었습니다");
+    move("/", "투어 추가 성공");
+});
+post("/reserveAdd", function() {
+    extract($_POST);
+    $user = ss();
+        db::exec("insert into reserves(user_idx, tour_idx, people) values('$user->idx', '$tour_idx', '$people')");
+    move("/reserve", "예약이 완료되었습니다");
 });

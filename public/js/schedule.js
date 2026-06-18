@@ -73,17 +73,18 @@ calendar.addEventListener("drop", (e) => {
     state.schedule[index].date = date
     state.schedule.sort((a, b) => new Date(a.date) - new Date(b.date))
     renderAll()
-    const overDate = new Date(date)
-    // 찾은 날짜의 스케줄 개수가 4개보다 클 동안 1일 추가
-    while (state.schedule.filter(item => item.date == `${makeTimeStamp(overDate)}`).length >= 4) {
-      overDate.setDate(overDate.getDate() + 1)
-    }
+    // const overDate = new Date(date)
+    // // 찾은 날짜의 스케줄 개수가 4개보다 클 동안 1일 추가
+    // while (state.schedule.filter(item => item.date == `${makeTimeStamp(overDate)}`).length >= 4) {
+    //   overDate.setDate(overDate.getDate() + 1)
+    // }
   }
 
+  
   if (!draggingItem) return
   const { dataset: { location } } = draggingItem; // 드래그 중인 장소 이름 꺼냄
   // const location = draggingItem.dataset.location; 와 같다
-
+  
   const previousScheduleDate = structuredClone(state.schedule).pop(); // 마지막 일정 가져옴
   if (!previousScheduleDate) { // 일정이 없으면
     scheduleRender(date, location)
@@ -91,23 +92,34 @@ calendar.addEventListener("drop", (e) => {
   }
   const prevDate = new Date(previousScheduleDate.date) // 마지막 일정 날짜
   const droppedDate = new Date(date); // 현재 드롭한 영역의 날짜
-
+  
   const diffDays = Math.floor( // 밀리초 -> 일로 변환
     (droppedDate - prevDate) / (1000 * 60 * 60 * 24)
   );
-
+  
   if (diffDays > 1) return alert('연속된 날짜가 아닙니다'); //(ex) 2026-08-03 - 2026-08-01 -> diffDays === 2
 
-  // const overDate = new Date(date)
-  // // 찾은 날짜의 스케줄 개수가 4개보다 클 동안 1일 추가
-  // while (state.schedule.filter(item => item.date == `${makeTimeStamp(overDate)}`).length >= 4) {
-  //   overDate.setDate(overDate.getDate() + 1)
-  // }
-  // scheduleRender(makeTimeStamp(overDate), location)
-  // return;
+  if(courseRoute.indexOf(startLocation) == courseRoute.indexOf(draggingItem)) {
+    // 시작 장소를 드래그 했을 떄 이벤트
+  }
+
+  const overDate = new Date(date)
+  // 찾은 날짜의 스케줄 개수가 4개보다 클 동안 1일 추가
+  while (state.schedule.filter(item => item.date == `${makeTimeStamp(overDate)}`).length >= 4) {
+    overDate.setDate(overDate.getDate() + 1)
+  }
+  scheduleRender(makeTimeStamp(overDate), location)
+  return;
 
   scheduleRender(date, location)
 })
+
+/* 
+  - 남은 구현 목록
+  1. 현재 드래그한 요소의 인덱스가 앞 요소의 인덱스보다 작으면 막기
+  2. 시작 지점 드래그하면 다같이 옮겨짐
+  3. 다 차있는 상태에서 요소가 더해지면 앞으로 하나씩 옮겨짐
+*/
 
 document.body.addEventListener("dragstart", (e) => {
   if (e.target.classList.contains("day-schedule")) {
@@ -141,6 +153,7 @@ function inputSetting() {
   $("[name='start_date']").value = makeTimeStamp(start)
   $("[name='end_date']").value = makeTimeStamp(end)
   $("[name='tour_course']").value = courseData.routeText
+  
 }
 
 let current = new Date()
@@ -155,7 +168,7 @@ function render(date, content, title) {
   const days = Array.from({ length: new Date(year, month + 1, 0).getDate() }, (_, i) => {
     const day = i + 1
     const isPast = new Date(year, month, day) <= new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const currentDate = `${year}-${month}-${day}`;
+    const currentDate = `${year}-${month + 1}-${day}`;
 
     const currentDateScheduleLocations = state.schedule.filter(({ date }) => date === currentDate)
     return `<div class='day ${isPast ? "disabled" : ""}' data-date='${currentDate}'>

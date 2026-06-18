@@ -313,7 +313,7 @@
 .page-schedule .course-list div.dragging { opacity: 0.5;}
 .calendar-container {height: 400px;display: flex;flex-direction: column;width: 100%;}
 .calendar-header {display: flex;justify-content: space-between;align-items: center;padding: 20px 30px;border: 1px solid var(--line);}
-.calendar-content {height: 100%;display: flex;}
+.calendar-content {height: fit-content;display: flex;}
 .current-calendar, .next-calendar {width: 50%;height: 100%;display: grid;grid-template-columns: repeat(7, 1fr);}
 .calendar-content div .day, .calendar-content div .week {display: flex;justify-content: center;align-items: center;width: 100%;height: 100%;padding: 10px;flex-direction: column;}
 .calendar-content div .week {font-weight: bold;}
@@ -325,3 +325,14 @@
 
 /* 팝업 */
 .popup {padding: 20px;border: 1px solid var(--line); position: fixed;transform: translate(-50%, -50%);top: 50%;left: 50%;display: none;flex-direction: column;justify-content: center;align-items: center;}
+.tour-form {gap: 20px;display: flex;align-items: center;flex-direction: column;justify-content: center;}
+.popup-content {display: flex;flex-direction: row;gap: 20px;}
+.popup-status {display: flex;flex-direction: column;white-space: nowrap;}
+
+/* 투어 */
+.order-link {margin-bottom: 20px;}
+.tour-list {display: grid;grid-template-columns: repeat(4, 1fr);gap: 20px;}
+.tour-list .tour {width: 100%;display: flex;font-size: 15px;flex-direction: column;gap: 10px;padding: 10px;border: 1px solid var(--line);color: #333;}
+.btn:disabled {background-color: gray !important;pointer-events: none !important;border: 0;}
+.end-label {color: rgb(255, 69, 69);font-size: 16px;}
+.hide-body .tour.ended {display: none;}
