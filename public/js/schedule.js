@@ -1,3 +1,10 @@
+/* 
+  - 남은 구현 목록
+  1. 현재 드래그한 요소의 인덱스가 앞 요소의 인덱스보다 작으면 막기 (c)
+  2. 시작 지점 드래그하면 다같이 옮겨짐
+  3. 다 차있는 상태에서 요소가 더해지면 앞으로 하나씩 옮겨짐
+*/
+
 const courseData = JSON.parse(localStorage.getItem("course"))
 const courseList = $(".course-list")
 const courseRoute = courseData.routeText.split("->")
@@ -11,7 +18,13 @@ const state = {
   schedule: []
 }
 
-// 코스 목록 랜더링 함수
+
+
+function milisecondsToDays(miliseconds) {
+  const days = miliseconds / 1000 / 60 / 60 / 24;
+  return days;
+}
+// 코스 목록 랜더링 함수 
 function renderCourseList() {
   courseList.innerHTML = courseRoute.map((location, idx) => `<div data-location="${location}" class="course-route ${idx !== state.currentIdx ? 'disabled' : ''}" draggable="true">${location}</div>`).join('');
   // 드래그 앤 드롭 마다 currentIdx++ 해서 이미 접근한 idx는 접근하지 못하게 함
@@ -57,18 +70,51 @@ calendar.addEventListener("drop", (e) => {
     findIndex() : 함수를 실행해 true인 조건을 비교
   */
   if (dayDraggingItem) {
-    const targetText = dayDraggingItem.textContent.trim()
-    const currentIdx = courseRoute.indexOf(targetText)
+    const targetLocation = dayDraggingItem.textContent.trim()
+    const currentIdx = courseRoute.indexOf(targetLocation)
+
+    const targetDate = new Date(date)
+
     if (currentIdx > 0) {
       const prevLocation = courseRoute[currentIdx - 1]
-      const targetDate = new Date(date)
+      // const nextLocation = courseRoute[currentIdx + 1]
       const prevDate = new Date(state.schedule.find(item => item.location == prevLocation).date)
+      // const nextDate = new Date(state.schedule.find(item => item.location == nextLocation).date)
       if (targetDate < prevDate) {
         alert("이전 일정보다 앞선 날짜로 이동 할 수 없습니다")
-        return
+        return;
+      }/*  else if (targetDate > nextDate) {
+        alert("다음 일정보다 뒤로 이동할 수 없습니다")
+      } */
+      const currentDate = state.schedule.find(item => item.location == targetLocation)
+      const blankDateObject = state.schedule.find(({ date, location }) => date === currentDate.date && location !== targetLocation)
+      if (blankDateObject === undefined) {
+        const targetSchedule = state.schedule.find(item => item.date == blankDateObject.date && item.location == blankDateObject.location)
+        const newDate = new Date(targetSchedule)
+        newDate.setDate(newDate.getDate() - 1)
+        return {
+          date: makeTimeStamp(newDate),
+          location,
+        }
       }
+      console.log();
+    } else if (currentIdx === 0) {
+      const currentDate = state.schedule.find(item => item.location == startLocation)
+      const differenceInMiliseconds = targetDate.getTime() - new Date(currentDate.date).getTime();
+      const differenceInDays = milisecondsToDays(differenceInMiliseconds);
+
+      state.schedule = state.schedule.map(({ date, location }) => {
+        const newDate = new Date(date);
+        newDate.setDate(newDate.getDate() + differenceInDays);
+        return {
+          date: makeTimeStamp(newDate),
+          location,
+        }
+      })
     }
-    const index = state.schedule.findIndex(item => item.location == targetText)
+
+
+    const index = state.schedule.findIndex(item => item.location == targetLocation)
     if (index === -1) return
     state.schedule[index].date = date
     state.schedule.sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -80,11 +126,28 @@ calendar.addEventListener("drop", (e) => {
     // }
   }
 
-  
+
+
   if (!draggingItem) return
   const { dataset: { location } } = draggingItem; // 드래그 중인 장소 이름 꺼냄
   // const location = draggingItem.dataset.location; 와 같다
-  
+
+  const targetText = draggingItem.textContent.trim()
+  const currentIdx = courseRoute.indexOf(targetText)
+  if (currentIdx > 0) {
+    const prevLocation = courseRoute[currentIdx - 1]
+    // const nextLocation = courseRoute[currentIdx + 1]
+    const targetDate = new Date(date)
+    const prevDate = new Date(state.schedule.find(item => item.location == prevLocation).date)
+    // const nextDate = new Date(state.schedule.find(item => item.location == nextLocation).date)
+    if (targetDate < prevDate) {
+      alert("이전 일정보다 앞선 날짜로 이동 할 수 없습니다")
+      return;
+    }/*  else if (targetDate > nextDate) {
+        alert("다음 일정보다 뒤로 이동할 수 없습니다")
+      } */
+  }
+
   const previousScheduleDate = structuredClone(state.schedule).pop(); // 마지막 일정 가져옴
   if (!previousScheduleDate) { // 일정이 없으면
     scheduleRender(date, location)
@@ -92,14 +155,14 @@ calendar.addEventListener("drop", (e) => {
   }
   const prevDate = new Date(previousScheduleDate.date) // 마지막 일정 날짜
   const droppedDate = new Date(date); // 현재 드롭한 영역의 날짜
-  
+
   const diffDays = Math.floor( // 밀리초 -> 일로 변환
     (droppedDate - prevDate) / (1000 * 60 * 60 * 24)
   );
-  
+
   if (diffDays > 1) return alert('연속된 날짜가 아닙니다'); //(ex) 2026-08-03 - 2026-08-01 -> diffDays === 2
 
-  if(courseRoute.indexOf(startLocation) == courseRoute.indexOf(draggingItem)) {
+  if (courseRoute.indexOf(startLocation) == courseRoute.indexOf(draggingItem)) {
     // 시작 장소를 드래그 했을 떄 이벤트
   }
 
@@ -113,13 +176,6 @@ calendar.addEventListener("drop", (e) => {
 
   scheduleRender(date, location)
 })
-
-/* 
-  - 남은 구현 목록
-  1. 현재 드래그한 요소의 인덱스가 앞 요소의 인덱스보다 작으면 막기
-  2. 시작 지점 드래그하면 다같이 옮겨짐
-  3. 다 차있는 상태에서 요소가 더해지면 앞으로 하나씩 옮겨짐
-*/
 
 document.body.addEventListener("dragstart", (e) => {
   if (e.target.classList.contains("day-schedule")) {
@@ -153,7 +209,7 @@ function inputSetting() {
   $("[name='start_date']").value = makeTimeStamp(start)
   $("[name='end_date']").value = makeTimeStamp(end)
   $("[name='tour_course']").value = courseData.routeText
-  
+
 }
 
 let current = new Date()
@@ -200,3 +256,4 @@ $(".next-btn").onclick = () => {
 
 renderAll()
 renderCourseList()
+
